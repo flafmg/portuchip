@@ -9,7 +9,8 @@ programa
 	inclua biblioteca Arquivos
 
 	
-	const inteiro hz = 600
+	const inteiro hz = 60
+	const inteiro instrucoes_por_frame = 20
 		
 	inteiro memoria[4096]
 	logico tela[64][32]
@@ -69,7 +70,7 @@ programa
 		//extrair bytes
 		inteiro n_caracteres = Texto.numero_caracteres(rom_cadeia)
 		inteiro index = 0x200
-		para(inteiro i = 0; i < n_caracteres; i += 2){
+		para(inteiro i = 0; i < n_caracteres; i += 3){
 			memoria[index] = Tipos.cadeia_para_inteiro(Texto.extrair_subtexto(rom_cadeia, i, i+2), 16)
 			index++
 		}
@@ -120,16 +121,18 @@ programa
 
 	funcao loop()
 	{
-		
 	     inteiro tempo_inicial = Util.tempo_decorrido()
 	     real intervalo = 1000 / hz  
 	
 		enquanto (verdadeiro)
 		{
 			controle()
-			ler()
-			decodificar()
-			executar()
+			para(inteiro i = 0; i < instrucoes_por_frame; i++){
+				ler()
+				decodificar()
+				executar()
+			}
+			renderizar()
 			
 			inteiro tempo_atual = Util.tempo_decorrido()
 			inteiro tempo_passado = tempo_atual - tempo_inicial
@@ -425,17 +428,17 @@ programa
 	}
 	funcao x8XY1(){
 		v[x] = v[x] | v[y]
-
+		v[0xf] = 0
 		pc += 2
 	}
 	funcao x8XY2(){
 		v[x] = v[x] & v[y]
-
+		v[0xf] = 0
 		pc += 2
 	}
 	funcao x8XY3(){
 		v[x] = v[x] ^ v[y]
-
+		v[0xf] = 0
 		pc += 2
 	}
 	funcao x8XY4(){
@@ -453,7 +456,7 @@ programa
 	}
 	funcao x8XY5(){
 		inteiro c
-		se(v[x] > v[y]){
+		se(v[x] >= v[y]){
 			c = 1
 		}senao{
 			c = 0
@@ -474,7 +477,7 @@ programa
 	}
 	funcao x8XY7(){
 		inteiro c
-		se(v[y] > v[x]){
+		se(v[y] >= v[x]){
 			c = 1
 		}senao{
 			c = 0
@@ -542,17 +545,16 @@ programa
 				}
 			}
 		}
-		renderizar()
 		pc += 2
 	}
 	funcao xEX9E(){
-		se(teclado[v[x]]){
+		se(teclado[v[x] & 0xf]){
 			pc += 2
 		}
 		pc += 2
 	}
 	funcao xEXA1(){
-		se(nao teclado[v[x]]){
+		se(nao teclado[v[x] & 0xf]){
 			pc += 2
 		}
 		pc += 2
@@ -582,24 +584,24 @@ programa
 		pc += 2
 	}
 	funcao xFX1E(){
-		i = (v[x] + i) & 0xffff
+		i += v[x] 
 
 		pc += 2
 	}
 	funcao xFX29(){
-		i += (v[x]*5) & 0xfff
+		i = ((v[x] & 0xF) * 5) & 0xffff
 
 		pc += 2
 	}
 	funcao xFX33(){
 
 		inteiro centenas = (v[x] / 100)
-		inteiro dezenas = ((v[x]/10) % 10)
+		inteiro dezenas = ((v[x] / 10) % 10)
 		inteiro unidades = (v[x] % 10)
 		
 		memoria[i] = centenas
-		memoria[i + 1] = dezenas
-		memoria[i + 2] = unidades
+		memoria[(i + 1) & 0xFFF] = dezenas
+		memoria[(i + 2) & 0xFFF] = unidades
 
 		pc += 2
 	}
@@ -607,15 +609,15 @@ programa
 		para(inteiro j = 0; j <= x; j++){
 			memoria[i + j] = v[j]
 		}
-		i +=  1
+		i += x + 1
 
 		pc += 2
 	}
 	funcao xFX65(){
 		para(inteiro j = 0; j <= x; j++){
-			v[j] = memoria[j + i]
+			v[j] = memoria[(j + i) & 0xFFF]
 		}
-		i += 1 
+		i += x + 1
 
 		pc += 2
 	}
