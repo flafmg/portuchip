@@ -511,8 +511,6 @@ programa
 	}
 	funcao xBNNN(){
 		pc = nnn + v[0]
-
-		pc += 2
 	}
 	funcao xCXNN(){
 		v[x] = sorteia(0, 255) & nn
